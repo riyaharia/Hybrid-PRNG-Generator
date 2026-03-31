@@ -51,7 +51,11 @@ class SerialReader:
                 if not line:
                     continue
                 decoded = line.decode("utf-8", errors="ignore").strip()
+                if not decoded:
+                    continue
+                logger.debug("Raw serial: %s", decoded)
                 if ":" not in decoded:
+                    logger.warning("Skipping (no colon): %s", decoded)
                     continue
                 mode, val_str = decoded.split(":", 1)
                 mode = mode.strip().upper()

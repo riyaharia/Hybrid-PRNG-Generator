@@ -21,17 +21,17 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from stats_tests import run_all_tests
-from simulator import Simulator
+from serial_reader import SerialReader
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────
 
-SERIAL_PORT = os.environ.get("SERIAL_PORT", "")
+SERIAL_PORT = os.environ.get("SERIAL_PORT", "COM5")
 BAUD_RATE = int(os.environ.get("BAUD_RATE", "115200"))
 BUFFER_SIZE = 500         # how many values to keep per mode for analysis
-STATS_INTERVAL = 50       # recalculate stats every N values
+STATS_INTERVAL = 10       # recalculate stats every N values
 BROADCAST_BATCH = 5       # send data to frontend every N values
 
 # ── App Setup ─────────────────────────────────────────────────────────────
@@ -140,7 +140,8 @@ async def websocket_endpoint(ws: WebSocket):
             except json.JSONDecodeError:
                 pass
     except WebSocketDisconnect:
-        clients.remove(ws)
+        if ws in clients:
+            clients.remove(ws)
         logger.info("WebSocket client disconnected (%d total)", len(clients))
 
 
@@ -158,19 +159,14 @@ async def broadcast(message: dict):
 
 
 async def data_pump():
-    """Read values from source, buffer them, compute stats, and broadcast."""
+    """Read values from Pico serial, buffer them, compute stats, and broadcast."""
     global source
     batch = []
     count = 0
 
-    # Choose data source
-    if SERIAL_PORT:
-        from serial_reader import SerialReader
-        source = SerialReader(port=SERIAL_PORT, baud_rate=BAUD_RATE)
-        logger.info("Using serial port %s", SERIAL_PORT)
-    else:
-        source = Simulator(interval=0.02)
-        logger.info("Using simulator (no SERIAL_PORT set)")
+    # Always use serial reader — reads directly from Raspberry Pi Pico
+    source = SerialReader(port=SERIAL_PORT, baud_rate=BAUD_RATE)
+    logger.info("Connecting to Pico on %s at %d baud", SERIAL_PORT, BAUD_RATE)
 
     async for mode, value in source.read_values():
         # Buffer the value under its mode
@@ -188,15 +184,19 @@ async def data_pump():
             batch = []
 
         # Recalculate stats periodically
-        if count % STATS_INTERVAL == 0 and len(buffers[mode]) >= 50:
-            stats = run_all_tests(buffers[mode])
-            latest_stats[mode] = stats
-            await broadcast({
-                "type": "stats",
-                "mode": mode,
-                "tests": stats,
-                "count": len(buffers[mode]),
-            })
+        if count % STATS_INTERVAL == 0 and len(buffers[mode]) >= 20:
+            try:
+                stats = run_all_tests(buffers[mode])
+                latest_stats[mode] = stats
+                logger.info("Stats computed for %s (%d samples)", mode, len(buffers[mode]))
+                await broadcast({
+                    "type": "stats",
+                    "mode": mode,
+                    "tests": stats,
+                    "count": len(buffers[mode]),
+                })
+            except Exception as exc:
+                logger.error("Stats error for %s: %s", mode, exc)
 
 
 @app.on_event("startup")
