@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Real-time dashboard for Hybrid Random Number Generator with statistical validation and visualization">
+    <title>Hybrid RNG Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────── -->
+<header id="header">
+    <div class="header-left">
+        <div class="logo-icon">
+            <svg viewBox="0 0 32 32" width="32" height="32">
+                <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2"/>
+                <circle cx="16" cy="16" r="6" fill="currentColor" opacity="0.6"/>
+                <circle cx="16" cy="8" r="2" fill="currentColor"/>
+                <circle cx="22" cy="20" r="2" fill="currentColor"/>
+                <circle cx="10" cy="20" r="2" fill="currentColor"/>
+            </svg>
+        </div>
+        <div>
+            <h1>Hybrid RNG Dashboard</h1>
+            <p class="subtitle">Real-time Statistical Validation &amp; Visualization</p>
+        </div>
+    </div>
+    <div class="header-right">
+        <div class="status-badge" id="connectionStatus">
+            <span class="status-dot"></span>
+            <span class="status-text">Connecting...</span>
+        </div>
+        <div class="sample-counter">
+            <span class="counter-label">Samples</span>
+            <span class="counter-value" id="totalSamples">0</span>
+        </div>
+    </div>
+</header>
+
+<!-- ── Mode Selector ──────────────────────────────────────────────────── -->
+<section class="mode-selector" id="modeSelector">
+    <button class="mode-btn active" data-mode="TRNG" id="btn-TRNG">
+        <span class="mode-icon">🎲</span>
+        <span class="mode-label">TRNG</span>
+        <span class="mode-desc">True Random</span>
+    </button>
+    <button class="mode-btn" data-mode="PRNG" id="btn-PRNG">
+        <span class="mode-icon">⚙️</span>
+        <span class="mode-label">PRNG</span>
+        <span class="mode-desc">Pseudo Random</span>
+    </button>
+    <button class="mode-btn" data-mode="HYBRID" id="btn-HYBRID">
+        <span class="mode-icon">🔀</span>
+        <span class="mode-label">HYBRID</span>
+        <span class="mode-desc">Combined</span>
+    </button>
+</section>
+
+<!-- ── Main Grid ──────────────────────────────────────────────────────── -->
+<main class="dashboard-grid">
+
+    <!-- Live Feed -->
+    <section class="card live-feed" id="liveFeedCard">
+        <div class="card-header">
+            <h2>Live Number Feed</h2>
+            <span class="badge" id="currentModeLabel">TRNG</span>
+        </div>
+        <div class="number-stream" id="numberStream">
+            <p class="placeholder-text">Waiting for data...</p>
+        </div>
+    </section>
+
+    <!-- Histogram -->
+    <section class="card chart-card" id="histogramCard">
+        <div class="card-header">
+            <h2>Value Distribution</h2>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="histogramChart"></canvas>
+        </div>
+    </section>
+
+    <!-- Bit Distribution -->
+    <section class="card chart-card" id="bitDistCard">
+        <div class="card-header">
+            <h2>Bit Distribution</h2>
+        </div>
+        <div class="chart-wrap chart-wrap-sm">
+            <canvas id="bitDistChart"></canvas>
+        </div>
+    </section>
+
+    <!-- Entropy Score -->
+    <section class="card chart-card" id="entropyCard">
+        <div class="card-header">
+            <h2>Randomness Score Over Time</h2>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="entropyChart"></canvas>
+        </div>
+    </section>
+
+    <!-- Stats Table -->
+    <section class="card stats-card" id="statsCard">
+        <div class="card-header">
+            <h2>Statistical Tests</h2>
+            <span class="badge" id="statsMode">TRNG</span>
+        </div>
+        <table class="stats-table" id="statsTable">
+            <thead>
+                <tr>
+                    <th>Test</th>
+                    <th>Statistic</th>
+                    <th>p-value</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody id="statsBody">
+                <tr><td colspan="4" class="muted">No results yet</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Comparison Panel -->
+    <section class="card comparison-card" id="comparisonCard">
+        <div class="card-header">
+            <h2>Mode Comparison</h2>
+        </div>
+        <div class="comparison-grid" id="comparisonGrid">
+            <!-- TRNG -->
+            <div class="comp-item comp-trng">
+                <h3>🎲 TRNG</h3>
+                <div class="comp-count"><span id="comp-TRNG-count">0</span> samples</div>
+                <div class="comp-tests" id="comp-TRNG-tests">
+                    <p class="muted">Waiting...</p>
+                </div>
+            </div>
+            <!-- PRNG -->
+            <div class="comp-item comp-prng">
+                <h3>⚙️ PRNG</h3>
+                <div class="comp-count"><span id="comp-PRNG-count">0</span> samples</div>
+                <div class="comp-tests" id="comp-PRNG-tests">
+                    <p class="muted">Waiting...</p>
+                </div>
+            </div>
+            <!-- HYBRID -->
+            <div class="comp-item comp-hybrid">
+                <h3>🔀 HYBRID</h3>
+                <div class="comp-count"><span id="comp-HYBRID-count">0</span> samples</div>
+                <div class="comp-tests" id="comp-HYBRID-tests">
+                    <p class="muted">Waiting...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    <p>Hybrid Random Number Generator &mdash; Mini Project &copy; 2026</p>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
